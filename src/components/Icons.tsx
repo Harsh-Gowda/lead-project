@@ -56,7 +56,15 @@ import {
   ListFilter,
   Image,
   Lock,
-  BarChart3
+  BarChart3,
+  Send,
+  Target,
+  FileText,
+  Handshake,
+  Trophy,
+  Ban,
+  CircleDot,
+  Tag
 } from 'lucide-react';
 
 export {
@@ -116,5 +124,13 @@ export {
   ListFilter,
   Image,
   Lock,
-  BarChart3
+  BarChart3,
+  Send,
+  Target,
+  FileText,
+  Handshake,
+  Trophy,
+  Ban,
+  CircleDot,
+  Tag
 };

@@ -12,7 +12,9 @@ import {
     RefreshCw,
     ChevronRight,
     Database,
-    Plus
+    Plus,
+    AlertTriangle,
+    Calendar
 } from '../components/Icons';
 import {
     BarChart,
@@ -24,7 +26,7 @@ import {
     Tooltip,
     ResponsiveContainer
 } from 'recharts';
-import { Lead } from '../types';
+import { Lead, LEAD_STAGES } from '../types';
 
 interface DashboardProps {
     metrics: {
@@ -46,6 +48,7 @@ interface DashboardProps {
     setSelectedLead: (lead: Lead) => void;
     setIsDrawerOpen: (isOpen: boolean) => void;
     leads: Lead[];
+    getStageConfig: (stage: string) => any;
 }
 
 const Badge = ({ children, color, icon: Icon }: { children: React.ReactNode; color: string; icon?: React.ElementType }) => {
@@ -56,6 +59,12 @@ const Badge = ({ children, color, icon: Icon }: { children: React.ReactNode; col
         green: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         slate: 'bg-slate-50 text-slate-600 border-slate-200',
         gray: 'bg-slate-100 text-slate-400 border-slate-200 opacity-60',
+        purple: 'bg-purple-50 text-purple-700 border-purple-100',
+        cyan: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+        teal: 'bg-teal-50 text-teal-700 border-teal-100',
+        amber: 'bg-amber-50 text-amber-700 border-amber-100',
+        yellow: 'bg-yellow-50 text-yellow-700 border-yellow-100',
+        indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100',
     };
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-tight ${styles[color] || styles.slate}`}>
@@ -75,7 +84,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     SourceIcon,
     setSelectedLead,
     setIsDrawerOpen,
-    leads
+    leads,
+    getStageConfig
 }) => {
     const PipelineTabs = () => {
         const tabs = [
@@ -134,6 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                             <th className="py-3 px-6 font-bold text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-100">Priority / Status</th>
                             <th className="py-3 px-6 font-bold text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-100">Project & Budget</th>
                             <th className="py-3 px-6 font-bold text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-100">Source Channel</th>
+                            <th className="py-3 px-6 font-bold text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-100">Stage</th>
                             <th className="py-3 px-6 font-bold text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-100">Engagement</th>
                             <th className="py-3 px-6 border-b border-slate-100"></th>
                         </tr>
@@ -151,6 +162,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         <div className="font-bold text-slate-900 flex items-center gap-2">
                                             {lead.name}
                                             {lead.status === 'Urgent' && <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>}
+                                            {lead.next_follow_up && new Date(lead.next_follow_up) < new Date() && lead.status !== 'Closed' && (
+                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-red-50 border border-red-100 text-[8px] font-bold text-red-500 uppercase" title={`Follow-up overdue since ${new Date(lead.next_follow_up).toLocaleDateString()}`}>
+                                                    <AlertTriangle size={8} /> Overdue
+                                                </span>
+                                            )}
+                                            {!lead.next_follow_up && lead.status !== 'Closed' && lead.lead_stage !== 'Won' && lead.lead_stage !== 'Lost' && (
+                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-50 border border-amber-100 text-[8px] font-bold text-amber-500 uppercase" title="No follow-up scheduled">
+                                                    <Calendar size={8} /> No F/U
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
                                             <Mail size={12} className="text-slate-300" /> {lead.email}
@@ -162,7 +183,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         </Badge>
                                     </td>
                                     <td className="py-4 px-6">
-                                        <div className="text-slate-700 font-bold text-xs">{lead.projectType}</div>
+                                        <div className="text-slate-700 font-bold text-xs">{lead.project_type}</div>
                                         <div className="text-[11px] text-emerald-600 font-bold mt-0.5">${lead.budget.toLocaleString()}</div>
                                     </td>
                                     <td className="py-4 px-6">
@@ -175,12 +196,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         </div>
                                     </td>
                                     <td className="py-4 px-6">
+                                        <Badge color={getStageConfig(lead.lead_stage).color} icon={getStageConfig(lead.lead_stage).icon}>
+                                            {lead.lead_stage}
+                                        </Badge>
+                                    </td>
+                                    <td className="py-4 px-6">
                                         <div className="flex items-center gap-2">
-                                            {lead.whatsappStatus === 'Replied' ? (
+                                            {lead.whatsapp_status === 'Replied' ? (
                                                 <div className="flex items-center gap-1.5 text-green-600 font-bold text-[10px]">
                                                     <MessageCircle size={14} fill="currentColor" className="opacity-20" /> Replied
                                                 </div>
-                                            ) : lead.whatsappStatus === 'Sent' ? (
+                                            ) : lead.whatsapp_status === 'Sent' ? (
                                                 <div className="flex items-center gap-1.5 text-blue-500 font-bold text-[10px]">
                                                     <MessageCircle size={14} /> Sent
                                                 </div>
@@ -199,7 +225,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         })}
                         {filteredLeads.length === 0 && (
                             <tr>
-                                <td colSpan={6} className="py-20 text-center text-slate-400 font-medium italic text-sm border-l-4 border-l-transparent">
+                                <td colSpan={7} className="py-20 text-center text-slate-400 font-medium italic text-sm border-l-4 border-l-transparent">
                                     <div className="flex flex-col items-center gap-2 opacity-50">
                                         <Database size={32} />
                                         <span>No leads matching the "{statusFilter}" filter.</span>
@@ -210,7 +236,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     );
 
     return (
@@ -244,6 +270,43 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{m.trend}</p>
                     </div>
                 ))}
+            </div>
+
+            {/* Lead Stage Funnel */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Lead Stage Pipeline</h2>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{leads.length} Total</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    {LEAD_STAGES.map((stage) => {
+                        const count = leads.filter(l => l.lead_stage === stage).length;
+                        const percentage = leads.length > 0 ? (count / leads.length) * 100 : 0;
+                        const config = getStageConfig(stage);
+                        if (count === 0) return null;
+                        return (
+                            <div
+                                key={stage}
+                                className="relative group cursor-default"
+                                style={{ width: `${Math.max(percentage, 8)}%` }}
+                            >
+                                <div
+                                    className="h-10 rounded-md flex items-center justify-center transition-all hover:scale-[1.02]"
+                                    style={{ backgroundColor: config.hex + '20', borderLeft: `3px solid ${config.hex}` }}
+                                >
+                                    <span className="text-[10px] font-bold truncate px-1" style={{ color: config.hex }}>
+                                        {count}
+                                    </span>
+                                </div>
+                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tight text-center mt-1 truncate">{stage}</div>
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                    {stage}: {count} ({Math.round(percentage)}%)
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Lead Source Breakdown Section */}
@@ -314,7 +377,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 {/* Status Pills */}
                                 <div className="flex flex-wrap gap-1">
                                     {Object.entries(sourceData.distribution).map(([status, count]) => (
-                                        count > 0 && (
+                                        (count as number) > 0 && (
                                             <div key={status} className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-50 border border-slate-100 text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
                                                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getStatusConfig(status as Lead['status']).hex }}></span>
                                                 {status}: {count}
@@ -324,8 +387,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 </div>
                                 <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex">
                                     {Object.entries(sourceData.distribution).map(([status, count]) => {
-                                        const percentage = (count / sourceData.total) * 100;
-                                        if (count === 0) return null;
+                                        const percentage = ((count as number) / sourceData.total) * 100;
+                                        if ((count as number) === 0) return null;
                                         return (
                                             <div
                                                 key={status}
