@@ -640,6 +640,7 @@ export default function App() {
             if (!userProfile && companyId) {
               console.log('User profile missing, creating one...');
               await usersService.create({
+                id: generateId(),
                 auth_id: user.id,
                 email: user.email!,
                 name: 'Admin User',
@@ -666,6 +667,7 @@ export default function App() {
           if (companyId) {
             try {
               await usersService.create({
+                id: generateId(),
                 auth_id: user.id,
                 email: user.email!,
                 name: 'Admin User',
