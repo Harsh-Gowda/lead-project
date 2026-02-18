@@ -80,7 +80,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ leads, settings, getStageConfig }
                         })}
                     </div>
                 </div>
-                <div className="h-72 w-full">
+                <div className="h-72 w-full" style={{ minHeight: '288px', minWidth: '100px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stageData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -103,7 +103,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ leads, settings, getStageConfig }
                     <h2 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Pipeline Value by Stage</h2>
                     <p className="text-[11px] text-slate-400 mt-1 font-medium">Estimated deal value and weighted forecast per stage</p>
                 </div>
-                <div className="h-72 w-full">
+                <div className="h-72 w-full" style={{ minHeight: '288px', minWidth: '100px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={pipelineValueData} margin={{ top: 0, right: 0, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -131,7 +131,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ leads, settings, getStageConfig }
                     <h2 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Budget Variance</h2>
                     <p className="text-[11px] text-slate-400 mt-1 font-medium">Budget distribution across current lead dataset</p>
                 </div>
-                <div className="h-72 w-full">
+                <div className="h-72 w-full" style={{ minHeight: '288px', minWidth: '100px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={leads.map((l, i) => ({ name: `L-${i + 1}`, budget: l.budget }))}>
                             <defs>

@@ -14,11 +14,13 @@ export const supabase = createClient(
     supabaseAnonKey || ''
 );
 
-// Quick connection test — check browser console for result
-supabase.from('leads').select('id', { count: 'exact', head: true }).then(({ count, error }) => {
-    if (error) {
-        console.error('❌ Supabase connection FAILED:', error.message);
-    } else {
-        console.log(`✅ Supabase connected! Found ${count ?? 0} leads in your database.`);
-    }
-});
+// Quick connection test — only if credentials are configured
+if (supabaseUrl && supabaseAnonKey) {
+    supabase.from('leads').select('id', { count: 'exact', head: true }).then(({ count, error }) => {
+        if (error) {
+            console.warn('⚠️ Supabase connection issue (table may not exist yet):', error.message);
+        } else {
+            console.log(`✅ Supabase connected! Found ${count ?? 0} leads in your database.`);
+        }
+    });
+}

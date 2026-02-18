@@ -190,7 +190,7 @@ export const usersService = {
     },
 
     /** Create a new user */
-    async create(user: { auth_id: string; email: string; name: string; company_id: string; role?: string }) {
+    async create(user: { id?: string; auth_id: string; email: string; name: string; company_id: string; role?: string }) {
         const { data, error } = await supabase.from('users').insert(user).select().single();
         if (error) throw error;
         return data;

@@ -324,7 +324,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <div className="flex justify-between items-center mb-6">
                             <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Inbound Volume by Source</div>
                         </div>
-                        <div className="flex-1 h-64">
+                        <div className="flex-1 h-64" style={{ minHeight: '256px', minWidth: '100px' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={sourceBreakdown} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
