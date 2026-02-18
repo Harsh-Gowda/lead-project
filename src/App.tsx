@@ -57,7 +57,7 @@ import Analytics from './pages/Analytics';
 import Integrations from './pages/Integrations';
 import Team from './pages/Team';
 import SettingsPage from './pages/Settings';
-import { leadsService, activitiesService, notesService, authService, companiesService } from './lib/database';
+import { leadsService, activitiesService, notesService, authService, companiesService, usersService } from './lib/database';
 
 // --- MOCK DATA ---
 const MOCK_LEADS: Lead[] = [
@@ -231,6 +231,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [newNoteContent, setNewNoteContent] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch company ID on mount
@@ -240,6 +242,7 @@ export default function App() {
         // 1. Try to get existing companies
         const companies = await companiesService.getAll();
         if (companies && companies.length > 0) {
+          console.log('Found existing company:', companies[0].id);
           setCompanyId(companies[0].id);
           return;
         }
@@ -255,12 +258,11 @@ export default function App() {
           console.log('Default company created:', newCompany.id);
           setCompanyId(newCompany.id);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching/creating company:', err);
-        // Fallback: Check if user is logged in (optional logic kept for future)
-        const session = await authService.getSession();
-        if (session?.user?.id) {
-          // Future: get user profile
+        // Supabase often returns { message: "..." } or { error_description: "..." }
+        if (err.message || err.error_description) {
+          console.error('Detailed Supabase Error:', err.message || err.error_description);
         }
       }
     };
@@ -522,14 +524,36 @@ export default function App() {
   };
 
   const handleCreateLead = async () => {
-    if (!companyId) {
+    // Retry fetching company if missing (JIT fix)
+    let currentCompanyId = companyId;
+    if (!currentCompanyId) {
+      try {
+        console.log('Company ID missing, attempting to fetch/create one last time...');
+        const companies = await companiesService.getAll();
+        if (companies && companies.length > 0) {
+          currentCompanyId = companies[0].id;
+          setCompanyId(currentCompanyId);
+        } else {
+          const newComp = await companiesService.create({ name: 'My Company', email: 'admin@example.com' });
+          currentCompanyId = newComp.id;
+          setCompanyId(currentCompanyId);
+        }
+      } catch (e: any) {
+        console.error('Failed to recover company ID:', e);
+        alert(`Configuration Error: Could not verify Company ID. Details: ${e.message || e.error_description || 'Unknown error'}. \n\nEnsure your database 'companies' table exists and RLS policies allow access.`);
+        return;
+      }
+    }
+
+    if (!currentCompanyId) {
       alert('Configuration Error: No Company ID found. Please contact support.');
       return;
     }
+
     try {
       console.log('Attempting to create manual lead...');
       const newLead: Partial<Lead> = {
-        company_id: companyId,
+        company_id: currentCompanyId,
         name: 'New Manual Lead',
         phone: '',
         email: '',
@@ -553,7 +577,9 @@ export default function App() {
       fetchGlobalActivities();
     } catch (err: any) {
       console.error('Error creating lead:', err);
-      alert(`Failed to create lead: ${err.message || 'Unknown error'}`);
+      // Detailed error if RLS or constraint violation
+      const msg = err.message || err.error_description || 'Unknown error';
+      alert(`Failed to create lead: ${msg}`);
     }
   };
 
@@ -578,14 +604,65 @@ export default function App() {
   };
 
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      setIsAuthenticated(true);
+
+    try {
+      if (authMode === 'signin') {
+        const { user } = await authService.signIn(email, password);
+        if (user) {
+          // After sign in, ensure user profile exists and is linked to company
+          try {
+            // 1. Check if user profile exists
+            let userProfile = await usersService.getByAuthId(user.id).catch(() => null);
+
+            // 2. If not, create it
+            if (!userProfile && companyId) {
+              console.log('User profile missing, creating one...');
+              await usersService.create({
+                auth_id: user.id,
+                email: user.email!,
+                name: 'Admin User',
+                company_id: companyId,
+                role: 'Admin'
+              });
+            }
+          } catch (profileErr) {
+            console.error('Error syncing user profile:', profileErr);
+            // Verify if we can proceed even if this fails (e.g. if RLS allows it solely based on auth.uid)
+          }
+
+          setIsAuthenticated(true);
+        }
+      } else {
+        const { user } = await authService.signUp(email, password);
+        if (user) {
+          // Create profile immediately for new signups
+          if (companyId) {
+            try {
+              await usersService.create({
+                auth_id: user.id,
+                email: user.email!,
+                name: 'Admin User',
+                company_id: companyId,
+                role: 'Admin'
+              });
+            } catch (createErr) {
+              console.error('Error creating user profile:', createErr);
+            }
+          }
+
+          alert('Account created! Please check your email to confirm your account before logging in.');
+          setAuthMode('signin');
+        }
+      }
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      alert(`Authentication failed: ${error.message || 'Unknown error'}`);
+    } finally {
       setIsAuthLoading(false);
-    }, 1200);
+    }
   };
 
   if (!isAuthenticated) {
@@ -664,6 +741,8 @@ export default function App() {
                   type="email"
                   placeholder="admin@lumina.io"
                   className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
@@ -678,6 +757,8 @@ export default function App() {
                   type="password"
                   placeholder="••••••••"
                   className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-300"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
