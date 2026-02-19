@@ -1,6 +1,6 @@
 
-import './lib/supabase'; // Initialize Supabase connection
-import React, { useState, useMemo, useRef } from 'react';
+import { supabase } from './lib/supabase';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -270,6 +270,55 @@ export default function App() {
       }
     };
     fetchCompany();
+  }, []);
+
+  // Set up real-time leads subscription
+  React.useEffect(() => {
+    console.log('📡 [Realtime] Initializing leads subscription...');
+
+    const leadsSubscription = supabase
+      .channel('leads-realtime')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        payload => {
+          console.log('🔔 [Realtime] Lead change detected:', payload.eventType, payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newLead = payload.new as Lead;
+            setLeads(prev => {
+              if (prev.some(l => l.id === newLead.id)) return prev;
+              return [newLead, ...prev];
+            });
+
+            // Add activity for notification
+            setGlobalActivities(prev => [{
+              id: `rt-${Date.now()}`,
+              lead_id: newLead.id,
+              type: 'created',
+              description: 'New lead arrived via external sync',
+              created_at: new Date().toISOString(),
+              lead_name: newLead.name
+            } as any, ...prev]);
+          } else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+            // Force a refresh for robustness
+            console.log('📝 [Realtime] Updating dashboard following change...');
+            leadsService.getAll().then(data => {
+              if (data) setLeads(data as unknown as Lead[]);
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [Realtime] Subscription status:', status);
+        if (status === 'CHANNEL_ERROR') {
+          console.error('❌ [Realtime] Failed to connect. Check Replication and RLS settings in Supabase.');
+        }
+      });
+
+    return () => {
+      console.log('🔌 [Realtime] Cleaning up subscription...');
+      supabase.removeChannel(leadsSubscription);
+    };
   }, []);
 
   // Fetch global recent activities for notifications
